@@ -64,44 +64,55 @@ async function audio(){
   await context.resume();
   return context;
 }
-const plucks=new Map();
-function pluckBuffer(frequency){
-  if(plucks.has(frequency))return plucks.get(frequency);
-  const rate=context.sampleRate;
-  const buffer=context.createBuffer(1,Math.ceil(rate*1.6),rate);
-  const data=buffer.getChannelData(0);
-  // A string plucked off centre excites harmonics that decay at different rates.
-  for(let harmonic=1;harmonic<=12;harmonic++){
-    const partial=frequency*harmonic*Math.sqrt(1+.00008*harmonic*harmonic);
-    const body=1+.65*Math.exp(-((partial-205)**2)/18000);
-    const amplitude=body*Math.sin(Math.PI*.19*harmonic)/harmonic**1.25;
-    const decay=(2.2+.68*harmonic**1.45)/rate;
-    const phase=2*Math.PI*partial/rate;
-    for(let i=0;i<data.length;i++)data[i]+=amplitude*Math.exp(-i*decay)*Math.sin(i*phase);
+const guitarSamples=new Map();
+function guitarSample(note){
+  const key=note.join('-');
+  if(!guitarSamples.has(key)){
+    const pending=fetch('audio/'+key+'.ogg')
+      .then(response=>{
+        if(!response.ok)throw Error('No se pudo cargar la grabación.');
+        return response.arrayBuffer();
+      })
+      .then(data=>context.decodeAudioData(data))
+      .then(buffer=>{
+        // Match peaks without changing the attack or decay of the recording.
+        let peak=0;
+        for(const value of buffer.getChannelData(0))peak=Math.max(peak,Math.abs(value));
+        return {buffer,gain:.58/Math.max(peak,.08)};
+      })
+      .catch(()=>{
+        guitarSamples.delete(key);
+        throw Error('No se pudo reproducir la grabación de guitarra. Inténtalo de nuevo.');
+      });
+    guitarSamples.set(key,pending);
   }
-  let peak=0;
-  for(let i=0;i<data.length;i++){
-    data[i]*=Math.min(1,i/(rate*.004));
-    peak=Math.max(peak,Math.abs(data[i]));
-  }
-  for(let i=0;i<data.length;i++)data[i]/=peak;
-  plucks.set(frequency,buffer);
-  return buffer;
+  return guitarSamples.get(key);
 }
-function sound(frequency,at,duration=0.52,click=false){
-  const voice=click?context.createOscillator():context.createBufferSource();
-  const volume=context.createGain();
-  if(click)voice.frequency.value=frequency;
-  else voice.buffer=pluckBuffer(frequency);
-  at=Math.max(at,context.currentTime);
-  volume.gain.setValueAtTime(.0001,at);
-  volume.gain.exponentialRampToValueAtTime(click?.038:.42,at+(click?.004:.006));
-  volume.gain.setValueAtTime(click?.038:.42,at+duration*(click?.18:.65));
-  volume.gain.exponentialRampToValueAtTime(.0001,at+duration);
+function playVoice(voice,volume,at,end){
   voice.connect(volume).connect(context.destination);
-  voice.start(at);voice.stop(at+duration);
+  voice.start(at);voice.stop(end);
   voices.push(voice);
   voice.onended=()=>{voices=voices.filter(item=>item!==voice);voice.disconnect();volume.disconnect();};
+}
+function playGuitar(sample,at,duration){
+  const voice=context.createBufferSource();
+  voice.buffer=sample.buffer;
+  const volume=context.createGain();
+  at=Math.max(at,context.currentTime);
+  const end=at+Math.min(duration,sample.buffer.duration);
+  volume.gain.setValueAtTime(sample.gain,at);
+  volume.gain.setValueAtTime(sample.gain,Math.max(at,end-.075));
+  volume.gain.linearRampToValueAtTime(0,end);
+  playVoice(voice,volume,at,end);
+}
+function clickBeat(frequency,at){
+  const voice=context.createOscillator();
+  voice.frequency.value=frequency;
+  const volume=context.createGain();
+  volume.gain.setValueAtTime(.0001,at);
+  volume.gain.exponentialRampToValueAtTime(.038,at+.004);
+  volume.gain.exponentialRampToValueAtTime(.0001,at+.043);
+  playVoice(voice,volume,at,at+.043);
 }
 async function mic(onPitch){
   stopMic();
@@ -185,8 +196,20 @@ function progress(){
 function tuner(){
   app.innerHTML='<h1>Afinador</h1><section class="card"><p>Elige una cuerda, activa el micrófono y tócala al aire.</p><div class="actions"><select id="string" aria-label="Cuerda">'+strings.map((s,i)=>'<option value="'+i+'">'+(6-i)+'.ª · '+s.name+'</option>').join('')+'</select>'+button('Escuchar referencia','reference')+button('Activar micrófono','enable',true)+'</div><div class="meter" aria-hidden="true"><i id="needle"></i></div><div class="tune" id="reading">Esperando una nota</div><p class="status" id="status" role="status"></p></section>';
   const string=document.querySelector('#string'),enable=document.querySelector('#enable');
-  document.querySelector('#reference').onclick=async()=>{
-    try{await audio();if(view==='afinador'){stopAudio();sound(hz(strings[string.value].midi),context.currentTime,.8);}}catch(e){status(e.message);}
+  let referenceRequest=0;
+  const reference=document.querySelector('#reference');
+  reference.onclick=async()=>{
+    const request=++referenceRequest,token=generation;
+    const note=[6-Number(string.value),0];
+    try{
+      await audio();
+      reference.textContent='Cargando grabación…';
+      const sample=await guitarSample(note);
+      if(token!==generation||request!==referenceRequest)return;
+      stopAudio();
+      playGuitar(sample,context.currentTime,2.15);
+    }catch(e){if(token===generation&&request===referenceRequest)status(e.message);}
+    finally{if(token===generation&&request===referenceRequest)reference.textContent='Escuchar referencia';}
   };
   enable.onclick=async()=>{
     if(stream||microphoneRequest){stopMic();enable.textContent='Activar micrófono';status('Micrófono desactivado.');return;}
@@ -241,12 +264,19 @@ function lesson(){
         if(!await mic(detect)||token!==generation)return;
         status('');
       }
-      if(mode==='demo')for(const note of sequence)if(note)pluckBuffer(hz(midi(note)));
+      const samples=new Map();
+      if(mode!=='microfono'){
+        status('Cargando grabaciones de guitarra…');
+        const positions=[...new Map((mode==='demo'?sequence:l.notes).filter(Boolean).map(n=>[n.join('-'),n])).values()];
+        await Promise.all(positions.map(async note=>samples.set(note.join('-'),await guitarSample(note))));
+        if(token!==generation)return;
+        status('');
+      }
       const zero=context.currentTime+.12+(mode==='demo'?0:4*beat);
       session={mode,zero,beat,sequence,results:new Map(),rests:new Set(),lastPitch:0,lastOnset:-Infinity,level:0};
-      if(mode==='demo')sequence.forEach((note,i)=>{if(note)sound(hz(midi(note)),zero+i*beat,Math.min(1.12,beat*.90));});
+      if(mode==='demo')sequence.forEach((note,i)=>{if(note)playGuitar(samples.get(note.join('-')),zero+i*beat,beat*.98);});
       else{
-        for(let i=-4;i<sequence.length;i++)sound(i===-4?1040:780,zero+i*beat,.043,true);
+        for(let i=-4;i<sequence.length;i++)clickBeat(i===-4?1040:780,zero+i*beat);
         if(mode==='pantalla'){
           const keys=document.querySelector('#keys');
           keys.textContent='Toca una de estas posiciones cuando llegue su pulso.';
@@ -254,7 +284,7 @@ function lesson(){
           for(const n of list){
             const key=document.createElement('button');
             key.className='btn key';key.textContent=n[0]+'.ª cuerda · '+n[1];
-            key.onclick=()=>{if(session?.mode==='pantalla'){const now=context.currentTime;sound(hz(midi(n)),now);judge(midi(n),now);}};
+            key.onclick=()=>{if(session?.mode==='pantalla'){const now=context.currentTime;playGuitar(samples.get(n.join('-')),now,Math.min(.85,beat*.9));judge(midi(n),now);}};
             keys.append(key);
           }
         }

@@ -17,3 +17,7 @@ Abre [http://localhost:8000](http://localhost:8000). El micrófono requiere perm
 ## En desarrollo
 
 Accord es el nombre común para las futuras rutas. Piano, ukelele, armónica y la traducción a otros idiomas forman parte de la dirección del proyecto. La versión actual incluye la ruta Traste en español.
+
+## Grabaciones de guitarra
+
+El afinador y los ejercicios reproducen diez notas de guitarra clásica de nailon tocadas con los dedos, una grabación por cada posición utilizada. Proceden de [Meta Nylon Guitar, de Meta Open Sound](https://github.com/facebookincubator/Meta-open-sound/tree/main/systems/instruments/meta-nylon-guitar), bajo [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Los archivos originales en formato Ogg se distribuyen en `audio/` con nombres que indican cuerda y traste.
