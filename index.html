@@ -94,16 +94,33 @@ function playVoice(voice,volume,at,end){
   voices.push(voice);
   voice.onended=()=>{voices=voices.filter(item=>item!==voice);voice.disconnect();volume.disconnect();};
 }
-function playGuitar(sample,at,duration){
+function playGuitar(sample,at,duration,dynamics=1,release=.075){
   const voice=context.createBufferSource();
   voice.buffer=sample.buffer;
   const volume=context.createGain();
   at=Math.max(at,context.currentTime);
   const end=at+Math.min(duration,sample.buffer.duration);
-  volume.gain.setValueAtTime(sample.gain,at);
-  volume.gain.setValueAtTime(sample.gain,Math.max(at,end-.075));
+  const level=sample.gain*dynamics;
+  volume.gain.setValueAtTime(level,at);
+  volume.gain.setValueAtTime(level,Math.max(at,end-release));
   volume.gain.linearRampToValueAtTime(0,end);
   playVoice(voice,volume,at,end);
+}
+function exampleNotes(sequence,beat,firstBeat){
+  return sequence.flatMap((note,index)=>{
+    if(!note)return [];
+    const previous=sequence[index-1];
+    const next=sequence[index+1];
+    const repeated=previous?.[0]===note[0]&&previous[1]===note[1];
+    const pulse=(firstBeat+index)%4;
+    const dynamics=[1,.91,.96,.89][pulse]*(repeated?.92:1);
+    // Release before a repeated attack or silence. Let a closing note ring.
+    const sameString=next?.[0]===note[0];
+    const closing=index===sequence.length-1;
+    const duration=closing?beat+Math.min(.45,beat*.5):!next?beat*.94:sameString?beat*.97:beat*1.08;
+    const release=closing?.20:!next?.11:sameString?.065:.12;
+    return [{note,index,duration,dynamics,release}];
+  });
 }
 function clickBeat(frequency,at){
   const voice=context.createOscillator();
@@ -274,8 +291,16 @@ function lesson(){
       }
       const zero=context.currentTime+.12+(mode==='demo'?0:4*beat);
       session={mode,zero,beat,sequence,results:new Map(),rests:new Set(),lastPitch:0,lastOnset:-Infinity,level:0};
-      if(mode==='demo')sequence.forEach((note,i)=>{if(note)playGuitar(samples.get(note.join('-')),zero+i*beat,beat*.98);});
-      else{
+      let end=zero+sequence.length*beat;
+      if(mode==='demo'){
+        const firstBeat=full?0:4*Number(segment.value);
+        for(const event of exampleNotes(sequence,beat,firstBeat)){
+          const at=zero+event.index*beat;
+          const sample=samples.get(event.note.join('-'));
+          playGuitar(sample,at,event.duration,event.dynamics,event.release);
+          end=Math.max(end,at+Math.min(event.duration,sample.buffer.duration));
+        }
+      }else{
         for(let i=-4;i<sequence.length;i++)clickBeat(i===-4?1040:780,zero+i*beat);
         if(mode==='pantalla'){
           const keys=document.querySelector('#keys');
@@ -292,10 +317,11 @@ function lesson(){
       let last=-5;
       timer=setInterval(()=>{
         if(!session)return;
-        const pos=Math.floor((context.currentTime-zero)/beat);
+        const now=context.currentTime;
+        if(now>=end){finish(full);return;}
+        const pos=Math.min(sequence.length-1,Math.floor((now-zero)/beat));
         if(pos===last)return;
         last=pos;
-        if(pos>=sequence.length){finish(full);return;}
         document.querySelectorAll('[data-beat]').forEach(cell=>cell.classList.toggle('now',Number(cell.dataset.beat)===pos));
         const viewport=document.querySelector('.tabwrap');
         const column=viewport.querySelector('thead .now');
