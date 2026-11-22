@@ -9,6 +9,7 @@
 :root{color-scheme:dark;--bg:#161922;--panel:#202431;--edge:#363b4b;--text:#f2f2f6;--muted:#b9bfd1;--lime:#ddf984;--violet:#ad9cfb}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,sans-serif}button,select{font:inherit;color:inherit}button{cursor:pointer}button:disabled{cursor:default;opacity:.58}button:focus-visible,select:focus-visible{outline:3px solid var(--violet);outline-offset:4px}header{border-bottom:1px solid var(--edge)}.bar,main{width:min(1100px,calc(100% - 36px));margin:auto}.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:72px}.brand{font-weight:900;font-size:26px;letter-spacing:-1.2px}.brand i{display:inline-block;background:var(--lime);color:#202719;border-radius:9px;padding:0 8px;font-style:normal;margin-right:8px}nav,.actions{display:flex;flex-wrap:wrap;gap:9px}.btn,select{border:1px solid var(--edge);border-radius:10px;background:var(--panel);padding:9px 14px;font-weight:650}.btn:hover:not(:disabled),.row:hover:not(:disabled){border-color:var(--violet)}.primary{background:var(--lime);color:#242d18;border-color:transparent}.active{border-color:var(--violet);color:#e0d9ff}main{padding:30px 0 60px}.hero{position:relative;isolation:isolate;overflow:hidden;border:1px solid #4b4667;border-radius:24px;padding:clamp(24px,5vw,55px);background:linear-gradient(120deg,#282640 28%,#39325c);margin-bottom:30px}.art{position:absolute;z-index:-1;right:-38px;top:8%;width:50%;height:90%;transform:rotate(-24deg);border:2px solid #ab98f570;border-radius:24px;background:repeating-linear-gradient(90deg,transparent 0 18%,#b5a6fd50 18% 19%),repeating-linear-gradient(0deg,transparent 0 15%,#ddcffd75 15% 16%),#514378}.art:after{content:'';position:absolute;left:40%;top:45%;width:28px;height:28px;border-radius:50%;background:var(--lime);box-shadow:95px -54px #b6a5ff,165px 45px #b6a5ff}.hero p{max-width:35ch}.eyebrow{font-weight:780;color:var(--lime);font-size:.86rem;letter-spacing:.1em;text-transform:uppercase}h1,h2,h3,p{margin-top:0}h1{font-size:clamp(2.2rem,6vw,4.3rem);letter-spacing:-.065em;line-height:1.02;margin-bottom:14px}h2{font-size:1.55rem;letter-spacing:-.025em;margin-bottom:12px}h3{margin-bottom:6px}.muted,small{color:var(--muted)}small{font-size:.88rem}.grid{display:grid;grid-template-columns:1.65fr 1fr;gap:20px;align-items:start}.card{background:var(--panel);border:1px solid var(--edge);border-radius:18px;padding:clamp(16px,3vw,26px)}.row{width:100%;text-align:left;display:grid;grid-template-columns:42px 1fr auto;align-items:center;gap:12px;background:#252937;border:1px solid var(--edge);border-radius:13px;padding:11px;margin:8px 0}.row strong,.row small{display:block}.badge{display:grid;place-items:center;border-radius:9px;background:#3e365c;color:#ddd3ff;height:38px}.row.current{border-color:#b3cd66}.row.done .badge{background:#374528;color:var(--lime)}progress{width:100%;accent-color:var(--lime);height:13px}.metric{font-size:2.3rem;font-weight:850;line-height:1.2}.lesson{display:grid;gap:17px}.tabwrap{overflow-x:auto;margin:14px 0}.tab{border-collapse:collapse;min-width:100%;font:600 1rem ui-monospace,monospace;text-align:center}.tab th,.tab td{min-width:37px;padding:5px;border-bottom:1px solid #4b5061}.tab th{text-align:left;color:var(--muted)}.tab td.now{background:#494065}.tab td.hit{color:var(--lime)}.tab td.miss{color:#ffabab}.status{min-height:2em;color:var(--lime);margin:12px 0 0}.tune{margin:18px 0;font-size:1.25rem}.meter{height:12px;border-radius:8px;background:linear-gradient(90deg,#a697e2,#464961 45%,#b9dc74 45% 55%,#464961 55%,#a697e2);position:relative;margin:16px 0}.meter i{position:absolute;left:50%;height:20px;width:4px;top:-4px;background:white;border-radius:3px}.practice-settings{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}.practice-settings label{display:grid;gap:4px}.spaced{margin-top:16px}.key{display:inline-flex;margin:3px}.beat{color:var(--lime);font-weight:800}.log{padding-left:22px}.log li{margin-bottom:6px}@media(max-width:700px){.grid{grid-template-columns:1fr}.bar{flex-wrap:wrap;padding:10px 0}.art{right:-18%;opacity:.42;width:65%}.row{grid-template-columns:36px 1fr auto}.row>small{font-size:.76rem}}@media(prefers-reduced-motion:no-preference){button{transition:border-color .15s,background .15s}}
 .practice-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.practice-head h2{margin-bottom:7px}.practice-settings{margin:16px 0;gap:12px}.practice-settings label{font-size:.9rem;color:var(--muted)}.practice-settings select{min-width:105px}.cue{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 15px;background:#191d27;border:1px solid var(--edge);border-radius:12px;margin-top:18px}.cue strong{color:var(--lime);font-size:1.05rem}.cue small{white-space:nowrap}.tab th,.tab td{border-bottom-color:#3a4051}.tab thead th{padding-bottom:9px}.tab td{color:#777f96}.tab td.note{color:#eeeaf8;font-weight:800}.tab td.hit{color:var(--lime)}.tab td.miss{color:#ffabab}.tab .now{background:#494065}.tab .now.note{color:var(--lime)}.practice-actions{margin-top:16px}.practice-actions #stop{border-color:#8274a8}.practice-actions [hidden]{display:none}.practice-help{margin:10px 0 0}.practice-help summary{cursor:pointer;color:var(--muted)}.practice-help p{margin:8px 0}.practice-keys:empty,.exercise-status:empty{display:none}
 .lane{position:relative;overflow:hidden;height:190px;margin-top:14px;border:1px solid var(--edge);border-radius:12px;background:#191d27}.lane[hidden],.mic-check[hidden]{display:none}.lane-strings{position:absolute;inset:12px 0;display:grid;grid-template-rows:repeat(6,1fr)}.lane-string{position:relative;display:flex;align-items:center;font-size:.8rem;color:var(--muted);padding-left:10px}.lane-string::after{content:'';position:absolute;left:44px;right:0;top:50%;border-top:1px solid #4b5061}.strike{position:absolute;top:8px;bottom:8px;left:23%;width:2px;background:var(--lime);z-index:1}.lane-note{position:absolute;left:0;display:grid;place-items:center;width:32px;height:26px;border-radius:7px;background:#615189;color:white;font-weight:800;z-index:2;margin-left:-16px;margin-top:-13px}.lane-note[hidden]{display:none}.lane-note.hit{background:#dbf985;color:#242d18}.lane-note.miss{background:#ad535f}.mic-check{margin-top:14px;padding:12px 15px;border:1px solid var(--edge);border-radius:10px}.mic-check p{margin:5px 0}.mic-check meter{width:min(220px,100%);margin-right:12px}.mic-check .btn{margin-top:8px}
+.speed-label input{accent-color:var(--lime);max-width:165px;margin:5px 0}.speed-label output{color:var(--text)}.input-label{display:grid;gap:5px;margin-bottom:10px;max-width:340px}.input-label select{width:100%;min-width:0}#guided-tools[hidden]{display:none}.tab th.now,.tab td.now{background:#494065}.tab td.note.hit{background:#374528}
 </style>
 </head>
 <body>
@@ -41,9 +42,9 @@ const hz=n=>440*2**((n-69)/12);
 
 const noteNames=['Do','Do♯','Re','Re♯','Mi','Fa','Fa♯','Sol','Sol♯','La','La♯','Si'];
 const positionName=n=>n[0]+'.ª cuerda · '+(n[1]?'Traste '+n[1]:'Al aire');
-let warmupPitch=null;
+let warmupPitch=null, inputId="";
 const button=(label,id,primary=false)=>'<button class="btn '+(primary?'primary':'')+'" id="'+id+'">'+label+'</button>';
-let view='ruta', selected=0, context, analyser, stream, microphoneRequest, micGeneration=0, frame=0, laneFrame=0, voices=[], session=null, timer=0, generation=0;
+let view='ruta', selected=0, context, micSource, micOutput, analyser, stream, microphoneRequest, micGeneration=0, frame=0, laneFrame=0, voices=[], session=null, timer=0, generation=0;
 function save(i,score,mode){
   history.unshift({lesson:i,score,mode,date:new Date().toISOString()});
   try{localStorage.setItem(KEY,JSON.stringify(history));}catch{storageFailed=true;}
@@ -56,7 +57,10 @@ function stopMic(){
   micGeneration++;
   cancelAnimationFrame(frame);
   stream?.getTracks().forEach(track=>track.stop());
-  stream=null;analyser=null;microphoneRequest=null;
+  micSource?.disconnect();
+  analyser?.disconnect();
+  micOutput?.disconnect();
+  micSource=micOutput=analyser=stream=microphoneRequest=null;
 }
 function stop(){
   generation++;warmupPitch=null;cancelAnimationFrame(laneFrame);clearInterval(timer);session=null;stopAudio();stopMic();
@@ -139,7 +143,10 @@ async function mic(onPitch){
   stopMic();
   const token=micGeneration;
   if(!navigator.mediaDevices?.getUserMedia)throw Error('Abre Accord en un navegador con acceso al micrófono.');
-  const request=navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,autoGainControl:false,noiseSuppression:false}});
+  const request=navigator.mediaDevices.getUserMedia({audio:{
+    ...(inputId?{deviceId:{exact:inputId}}:{}),
+    echoCancellation:{ideal:false},autoGainControl:{ideal:false},noiseSuppression:{ideal:false}
+  }});
   microphoneRequest=request;
   const input=await request;
   if(token!==micGeneration){input.getTracks().forEach(t=>t.stop());return false;}
@@ -148,8 +155,10 @@ async function mic(onPitch){
   if(token!==micGeneration)return false;
   analyser=ctx.createAnalyser();
   analyser.fftSize=4096;
-  const source=ctx.createMediaStreamSource(input);
-  source.connect(analyser);
+  micSource=ctx.createMediaStreamSource(input);
+  micOutput=ctx.createGain();
+  micOutput.gain.value=0;
+  micSource.connect(analyser).connect(micOutput).connect(ctx.destination);
   const buffer=new Float32Array(analyser.fftSize);
   let lastFrame=-Infinity;
   function loop(){
@@ -247,14 +256,14 @@ function tuner(){
     }catch(e){if(token===micGeneration){stopMic();enable.textContent='Activar micrófono';status(micError(e));}}
   };
 }
-function micError(e){return e.name==='NotAllowedError'?'Permite el micrófono en el navegador o usa el modo sin guitarra.':e.name==='NotFoundError'?'No hay un micrófono disponible.':e.message;}
+function micError(e){if(e.name==='NotReadableError')return 'No se puede leer esta entrada. Comprueba si otra aplicación está usando el micrófono.';if(e.name==='OverconstrainedError')return 'La entrada seleccionada no está disponible. Pulsa Tocar con micrófono para volver a la entrada predeterminada.';return e.name==='NotAllowedError'?'Permite el micrófono en el navegador o usa el modo sin guitarra.':e.name==='NotFoundError'?'No hay un micrófono disponible.':e.message;}
 function status(message){const node=document.querySelector('#status');if(node)node.textContent=message;}
 function tablature(notes){
   return '<div class="tabwrap"><table class="tab" aria-label="Tablatura del fragmento"><thead><tr><th scope="col">Cuerda</th>'+notes.map((_,i)=>'<th scope="col" data-beat="'+i+'">'+(i+1)+'</th>').join('')+'</tr></thead><tbody>'+[1,2,3,4,5,6].map(s=>'<tr><th scope="row">'+s+' · '+strings[6-s].name.replace(/ (grave|agudo)/,'')+'</th>'+notes.map((n,i)=>'<td class="'+(n?.[0]===s?'note':'')+'" data-beat="'+i+'">'+(n?.[0]===s?n[1]:'─')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
 }
 function lesson(){
   const l=lessons[selected];
-  app.innerHTML='<div class="lesson"><div><p class="eyebrow">Lección '+(selected+1)+' de '+lessons.length+' · '+l.type+'</p><h1>'+l.title+'</h1>'+button('Volver a la ruta','back')+'</div><section class="card"><h2>Tutorial</h2><ol>'+l.steps.map(step=>'<li>'+step+'</li>').join('')+'</ol></section><section class="card">'+(!l.notes?'<h2>Comprueba tus cuerdas</h2><div class="actions">'+button('Abrir afinador','open-tuner')+button('Ya he afinado','complete',true)+'</div>':'<div class="practice-head"><div><h2>Práctica guiada</h2><p class="muted">Escucha el ejemplo y luego toca una nota por pulso.</p></div></div><div class="practice-settings"><label>Tempo (BPM)<select id="tempo">'+[.65,.8,1,1.2].map(mult=>'<option '+(mult===1?'selected':'')+'>'+Math.round(mult*l.bpm)+'</option>').join('')+'</select></label><label>Fragmento<select id="segment"><option value="all">Completo</option>'+Array.from({length:Math.ceil(l.notes.length/4)},(_,i)=>'<option value="'+i+'">Pulsos '+(4*i+1)+'–'+Math.min(l.notes.length,4*i+4)+'</option>').join('')+'</select></label></div><div class="cue"><strong id="cue">Listo para empezar</strong><small id="beat-count"></small></div><div id="lane" class="lane" hidden aria-hidden="true"></div><div id="tabs"></div><small>0 = cuerda al aire · Los demás números indican el traste.</small><div class="actions practice-actions">'+button('Escuchar ejemplo','demo')+button('Tocar con micrófono','play',true)+button('Practicar en pantalla','virtual')+button('Parar','stop').replace('<button ','<button hidden ')+'</div><details class="practice-help"><summary>Cómo se puntúa</summary><p>Tras cuatro pulsos de entrada, toca cada nota cuando llegue a la línea verde. Acierta al menos el 75 % del ejercicio completo para avanzar. Si usas el micrófono, ponte auriculares para escuchar el metrónomo.</p></details><div class="mic-check" id="mic-check" hidden><label><meter id="mic-level" min="0" max="1" value="0"></meter>Nivel del micrófono</label><p id="mic-note">Esperando señal.</p><p id="warmup" role="status"></p>'+button('Empezar con metrónomo','begin',true).replace('<button ','<button hidden ')+'</div><div id="keys" class="spaced practice-keys"></div>')+'<p class="status exercise-status" id="status" role="status"></p><div id="result"></div></section></div>';
+  app.innerHTML='<div class="lesson"><div><p class="eyebrow">Lección '+(selected+1)+' de '+lessons.length+' · '+l.type+'</p><h1>'+l.title+'</h1>'+button('Volver a la ruta','back')+'</div><section class="card"><h2>Tutorial</h2><ol>'+l.steps.map(step=>'<li>'+step+'</li>').join('')+'</ol></section><section class="card">'+(!l.notes?'<h2>Comprueba tus cuerdas</h2><div class="actions">'+button('Abrir afinador','open-tuner')+button('Ya he afinado','complete',true)+'</div>':'<div class="practice-head"><div><h2>Práctica guiada</h2><p class="muted">Escucha el ejemplo y luego toca una nota por pulso.</p></div></div><div class="practice-settings"><label>Modo<select id="practice-mode"><option value="timed">A pulso</option><option value="guided">Nota a nota</option></select></label><label class="speed-label">Velocidad <output id="bpm">'+l.bpm+' BPM</output><input id="tempo" type="range" min="40" max="150" value="100" step="5" aria-label="Velocidad"></label><label>Fragmento<select id="segment"><option value="all">Completo</option>'+Array.from({length:Math.ceil(l.notes.length/4)},(_,i)=>'<option value="'+i+'">Pulsos '+(4*i+1)+'–'+Math.min(l.notes.length,4*i+4)+'</option>').join('')+'</select></label></div><div class="cue"><strong id="cue">Listo para empezar</strong><small id="beat-count"></small></div><div id="lane" class="lane" hidden aria-hidden="true"></div><div id="tabs"></div><small>0 = cuerda al aire · Los demás números indican el traste.</small><div class="actions practice-actions">'+button('Escuchar ejemplo','demo')+button('Tocar con micrófono','play',true)+button('Practicar en pantalla','virtual')+button('Parar','stop').replace('<button ','<button hidden ')+'</div><details class="practice-help"><summary>Cómo se puntúa</summary><p>Tras cuatro pulsos de entrada, toca cada nota cuando llegue a la línea verde. Acierta al menos el 75 % del ejercicio completo para avanzar. Si usas el micrófono, ponte auriculares para escuchar el metrónomo.</p></details><div class="mic-check" id="mic-check" hidden><label class="input-label">Entrada de audio<select id="mic-input"><option value="">Micrófono predeterminado</option></select></label><label><meter id="mic-level" min="0" max="1" value="0"></meter>Nivel del micrófono</label><p id="mic-note">Esperando señal.</p><p id="warmup" role="status"></p>'+button('Empezar','begin',true).replace('<button ','<button hidden ')+'</div><div id="guided-tools" class="actions spaced" hidden></div><div id="keys" class="spaced practice-keys"></div>')+'<p class="status exercise-status" id="status" role="status"></p><div id="result"></div></section></div>';
   document.querySelector('#back').onclick=()=>go('ruta');
   if(!l.notes){
     document.querySelector('#open-tuner').onclick=()=>go('afinador');
@@ -262,25 +271,48 @@ function lesson(){
     return;
   }
   const segment=document.querySelector('#segment');
+  const tempo=document.querySelector('#tempo');
+  const practiceMode=document.querySelector('#practice-mode');
   const notes=()=>segment.value==='all'?l.notes:l.notes.slice(4*Number(segment.value),4*Number(segment.value)+4);
+  const bpm=()=>Math.round(l.bpm*Number(tempo.value)/100);
   function reset(message=''){
     stop();practiceControls(false);showCue('Listo para empezar');document.querySelector('#tabs').innerHTML=tablature(notes());
     document.querySelector('#lane').hidden=true;
     document.querySelector('#tabs').hidden=false;
     document.querySelector('#mic-check').hidden=true;
+    document.querySelector('#guided-tools').hidden=true;
+    document.querySelector('#guided-tools').innerHTML='';
     document.querySelector('#keys').innerHTML='';document.querySelector('#result').innerHTML='';status(message);
   }
   reset();
   segment.onchange=()=>reset();
-  document.querySelector('#tempo').onchange=()=>reset();
+  practiceMode.onchange=()=>reset(practiceMode.value==='guided'?'La práctica espera a que aciertes cada nota.':'');
+  tempo.oninput=()=>{document.querySelector('#bpm').textContent=bpm()+' BPM · '+tempo.value+' %';};
+  tempo.onchange=()=>reset();
   document.querySelector('#stop').onclick=()=>reset('Práctica detenida.');
   document.querySelector('#demo').onclick=()=>start('demo');
   document.querySelector('#play').onclick=()=>start('microfono');
   document.querySelector('#virtual').onclick=()=>start('pantalla');
+  document.querySelector('#mic-input').onchange=e=>{
+    inputId=e.target.value;
+    start('microfono');
+  };
+  async function listInputs(token){
+    try{
+      const devices=await navigator.mediaDevices.enumerateDevices();
+      if(token!==generation)return;
+      const select=document.querySelector('#mic-input');
+      select.replaceChildren(new Option('Micrófono predeterminado',''));
+      devices.filter(device=>device.kind==='audioinput'&&device.deviceId&&device.deviceId!=='default'&&device.deviceId!=='communications')
+        .forEach((device,i)=>select.add(new Option(device.label||'Entrada '+(i+1),device.deviceId)));
+      select.value=inputId;
+      if(select.selectedIndex<0)select.selectedIndex=0;
+    }catch{}
+  }
   async function start(mode){
     reset();
     const token=generation,sequence=notes(),full=segment.value==='all';
-    const beat=60/Number(document.querySelector('#tempo').value);
+    const beat=60/bpm();
     try{
       await audio();
       if(token!==generation)return;
@@ -294,6 +326,7 @@ function lesson(){
         if(!ready||token!==generation)return;
         status('');
         warmup(sequence,token);
+        listInputs(token);
         return;
       }
       const samples=new Map();
@@ -304,8 +337,9 @@ function lesson(){
         if(token!==generation)return;
         status('');
       }
-      run(mode,sequence,beat,full,samples);
-    }catch(e){if(token===generation)reset(micError(e));}
+      if(mode==='pantalla'&&practiceMode.value==='guided')guided(mode,sequence,samples);
+      else run(mode,sequence,beat,full,samples);
+    }catch(e){if(token===generation){if(e.name==='OverconstrainedError')inputId='';reset(micError(e));}}
   }
   function run(mode,sequence,beat,full,samples){
       const zero=context.currentTime+.12+(mode==='demo'?0:4*beat);
@@ -321,17 +355,7 @@ function lesson(){
         }
       }else{
         for(let i=-4;i<sequence.length;i++)clickBeat(i===-4?1040:780,zero+i*beat);
-        if(mode==='pantalla'){
-          const keys=document.querySelector('#keys');
-          keys.textContent='Toca una de estas posiciones cuando llegue su pulso.';
-          const list=[...new Map(l.notes.filter(Boolean).map(n=>[n.join(','),n])).values()];
-          for(const n of list){
-            const key=document.createElement('button');
-            key.className='btn key';key.textContent=n[0]+'.ª cuerda · '+n[1];
-            key.onclick=()=>{if(session?.mode==='pantalla'){const now=context.currentTime;playGuitar(samples.get(n.join('-')),now,Math.min(.85,beat*.9));judge(midi(n),now);}};
-            keys.append(key);
-          }
-        }
+        if(mode==='pantalla')screenKeys(samples,n=>judge(midi(n),context.currentTime));
       }
       drawLane(sequence,zero,beat);
       let last=-5;
@@ -348,11 +372,74 @@ function lesson(){
         }else showCue('Prepárate','Entrada '+(5+pos)+' de 4');
       },25);
   }
+  function screenKeys(samples,onNote){
+    const keys=document.querySelector('#keys');
+    keys.textContent='Elige la cuerda y el traste.';
+    const positions=[...new Map(l.notes.filter(Boolean).map(n=>[n.join('-'),n])).values()];
+    for(const n of positions){
+      const key=document.createElement('button');
+      key.className='btn key';key.textContent=positionName(n);
+      key.onclick=()=>{
+        if(!session)return;
+        playGuitar(samples.get(n.join('-')),context.currentTime,.7);
+        onNote(n);
+      };
+      keys.append(key);
+    }
+  }
+  function guided(mode,sequence,samples){
+    const positions=sequence.flatMap((note,index)=>note?[{note,index}]:[]);
+    const tools=document.querySelector('#guided-tools');
+    tools.hidden=false;
+    tools.innerHTML=button('Escuchar esta nota','hear-note')+button('Saltar nota','skip-note');
+    session={mode,practice:true,lastPitch:0,lastOnset:-Infinity,level:0};
+    let step=0,correct=0;
+    const token=generation;
+    const next=()=>{
+      const target=positions[step];
+      if(!target){
+        stop();practiceControls(false);
+        tools.hidden=true;
+        document.querySelector('#mic-check').hidden=true;
+        document.querySelector('#keys').innerHTML='';
+        document.querySelectorAll('.now').forEach(cell=>cell.classList.remove('now'));
+        showCue('Práctica terminada',correct+' de '+positions.length+' notas');
+        status('Para puntuar y avanzar, completa el ejercicio en modo A pulso.');
+        return;
+      }
+      showCue(positionName(target.note),'Nota '+(step+1)+' de '+positions.length);
+      document.querySelectorAll('[data-beat]').forEach(cell=>cell.classList.toggle('now',Number(cell.dataset.beat)===target.index));
+    };
+    session.onNote=heard=>{
+      const target=positions[step];
+      if(heard!==midi(target.note)){
+        status('Prueba otra vez · '+positionName(target.note));
+        return;
+      }
+      document.querySelector('td.note[data-beat="'+target.index+'"]')?.classList.add('hit');
+      step++;correct++;
+      status('Correcta');
+      next();
+    };
+    document.querySelector('#skip-note').onclick=()=>{step++;status('Nota omitida');next();};
+    document.querySelector('#hear-note').onclick=async()=>{
+      const target=positions[step];
+      try{
+        const sample=await guitarSample(target.note);
+        if(token!==generation||positions[step]!==target)return;
+        if(mode==='microfono')session.ignoreUntil=context.currentTime+.95;
+        playGuitar(sample,context.currentTime,.85);
+      }catch(e){if(token===generation)status(e.message);}
+    };
+    if(mode==='pantalla')screenKeys(samples,n=>session?.onNote(midi(n)));
+    next();
+  }
   function warmup(sequence,token){
     const panel=document.querySelector('#mic-check'), begin=document.querySelector('#begin');
     const note=document.querySelector('#mic-note'), prompt=document.querySelector('#warmup');
     const targets=[...new Map(sequence.filter(Boolean).map(n=>[n.join('-'),n])).values()].slice(0,3);
     panel.hidden=false;begin.hidden=false;
+    begin.textContent=practiceMode.value==='guided'?'Empezar nota a nota':'Empezar con metrónomo';
     note.textContent='Esperando señal.';
     showCue('Calentamiento');
     let index=0,frames=0;
@@ -368,7 +455,8 @@ function lesson(){
       if(token!==generation||session)return;
       warmupPitch=null;
       begin.hidden=true;prompt.textContent='';
-      run('microfono',sequence,60/Number(document.querySelector('#tempo').value),segment.value==='all',new Map());
+      if(practiceMode.value==='guided')guided('microfono',sequence,new Map());
+      else run('microfono',sequence,60/bpm(),segment.value==='all',new Map());
     };
   }
 }
@@ -420,6 +508,7 @@ function practiceControls(running){
 function detect(frequency,now,level){
   if(!session)return;
   const s=session;
+  if(now<(s.ignoreUntil??0))return;
   const attack=level>Math.max(.0015,s.level*1.35);
   s.level=s.level*.80+level*.20;
   if(attack)s.attackAt=now;
@@ -435,7 +524,8 @@ function detect(frequency,now,level){
     s.lastPitch=rounded;s.lastOnset=now;
     const onset=freshAttack?s.attackAt:now;
     s.attackAt=undefined;
-    judge(rounded,onset-.024);
+    if(s.practice)s.onNote(rounded);
+    else judge(rounded,onset-.024);
   }
 }
 function judge(note,now){
