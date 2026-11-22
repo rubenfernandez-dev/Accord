@@ -10,6 +10,7 @@
 .practice-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.practice-head h2{margin-bottom:7px}.practice-settings{margin:16px 0;gap:12px}.practice-settings label{font-size:.9rem;color:var(--muted)}.practice-settings select{min-width:105px}.cue{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 15px;background:#191d27;border:1px solid var(--edge);border-radius:12px;margin-top:18px}.cue strong{color:var(--lime);font-size:1.05rem}.cue small{white-space:nowrap}.tab th,.tab td{border-bottom-color:#3a4051}.tab thead th{padding-bottom:9px}.tab td{color:#777f96}.tab td.note{color:#eeeaf8;font-weight:800}.tab td.hit{color:var(--lime)}.tab td.miss{color:#ffabab}.tab .now{background:#494065}.tab .now.note{color:var(--lime)}.practice-actions{margin-top:16px}.practice-actions #stop{border-color:#8274a8}.practice-actions [hidden]{display:none}.practice-help{margin:10px 0 0}.practice-help summary{cursor:pointer;color:var(--muted)}.practice-help p{margin:8px 0}.practice-keys:empty,.exercise-status:empty{display:none}
 .lane{position:relative;overflow:hidden;height:190px;margin-top:14px;border:1px solid var(--edge);border-radius:12px;background:#191d27}.lane[hidden],.mic-check[hidden]{display:none}.lane-strings{position:absolute;inset:12px 0;display:grid;grid-template-rows:repeat(6,1fr)}.lane-string{position:relative;display:flex;align-items:center;font-size:.8rem;color:var(--muted);padding-left:10px}.lane-string::after{content:'';position:absolute;left:44px;right:0;top:50%;border-top:1px solid #4b5061}.strike{position:absolute;top:8px;bottom:8px;left:23%;width:2px;background:var(--lime);z-index:1}.lane-note{position:absolute;left:0;display:grid;place-items:center;width:32px;height:26px;border-radius:7px;background:#615189;color:white;font-weight:800;z-index:2;margin-left:-16px;margin-top:-13px}.lane-note[hidden]{display:none}.lane-note.hit{background:#dbf985;color:#242d18}.lane-note.miss{background:#ad535f}.mic-check{margin-top:14px;padding:12px 15px;border:1px solid var(--edge);border-radius:10px}.mic-check p{margin:5px 0}.mic-check meter{width:min(220px,100%);margin-right:12px}.mic-check .btn{margin-top:8px}
 .speed-label input{accent-color:var(--lime);max-width:165px;margin:5px 0}.speed-label output{color:var(--text)}.input-label{display:grid;gap:5px;margin-bottom:10px;max-width:340px}.input-label select{width:100%;min-width:0}#guided-tools[hidden]{display:none}.tab th.now,.tab td.now{background:#494065}.tab td.note.hit{background:#374528}
+.timing{position:absolute;z-index:4;left:23%;top:4px;transform:translateX(-50%);padding:4px 9px;border-radius:8px;background:#684831;color:white;font-size:.85rem;font-weight:800;white-space:nowrap;pointer-events:none}.timing:empty{display:none}.timing.perfect{background:var(--lime);color:#242d18}.timing-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.tune.locked{color:var(--lime);font-weight:800}.meter.locked i{background:var(--lime);box-shadow:0 0 0 3px #536b35}
 </style>
 </head>
 <body>
@@ -139,7 +140,7 @@ function clickBeat(frequency,at){
   volume.gain.exponentialRampToValueAtTime(.0001,at+.043);
   playVoice(voice,volume,at,at+.043);
 }
-async function mic(onPitch){
+async function mic(onPitch,targetFrequency){
   stopMic();
   const token=micGeneration;
   if(!navigator.mediaDevices?.getUserMedia)throw Error('Abre Accord en un navegador con acceso al micrófono.');
@@ -169,30 +170,38 @@ async function mic(onPitch){
     analyser.getFloatTimeDomainData(buffer);
     let energy=0;
     for(let i=buffer.length-1024;i<buffer.length;i++)energy+=buffer[i]*buffer[i];
-    const recent=Math.min(buffer.length,Math.ceil(.062*ctx.sampleRate));
-    onPitch(pitch(buffer.subarray(buffer.length-recent),ctx.sampleRate),ctx.currentTime,Math.sqrt(energy/1024));
+    const target=targetFrequency?.();
+    const recent=Math.min(buffer.length,Math.ceil((target ? .085 : .062)*ctx.sampleRate));
+    onPitch(pitch(buffer.subarray(buffer.length-recent),ctx.sampleRate,target),ctx.currentTime,Math.sqrt(energy/1024));
   }
   loop();
   return true;
 }
-function pitch(samples,rate){
+function pitch(samples,rate,target){
   let energy=0;
-  const window=Math.min(1536,Math.floor(rate*.026),Math.floor(samples.length/2));
+  const window=Math.min(target?2048:1536,Math.floor(rate*(target ? .038 : .026)),Math.floor(samples.length/2));
   for(let i=0;i<window;i++)energy+=samples[i]*samples[i];
   if(energy/window<.000001)return 0;
   const limit=Math.min(Math.floor(rate/68),samples.length-window-1);
   const curve=new Float64Array(limit+1);
-  let total=0;
+  let total=0,first=0,preferred=0;
   for(let lag=1;lag<=limit;lag++){
     let diff=0;
     for(let i=0;i<window;i+=2){const delta=samples[i]-samples[i+lag];diff+=delta*delta;}
     total+=diff;curve[lag]=total?diff*lag/total:1;
     if(lag>Math.floor(rate/410)+1&&curve[lag-1]<.23&&curve[lag-1]<=curve[lag-2]&&curve[lag]>curve[lag-1]){
-      const a=curve[lag-2],b=curve[lag-1],c=curve[lag];
-      return rate/(lag-1+(a-c)/(2*(a-2*b+c)));
+      const candidate=lag-1;
+      if(!first)first=candidate;
+      if(!target)break;
+      const ratio=rate/(candidate*target);
+      if(ratio>=.86&&ratio<=1.16&&(!preferred||curve[candidate]<curve[preferred]))preferred=candidate;
     }
   }
-  return 0;
+  if(!first)return 0;
+  // Prefer the selected string period only when it fits appreciably better.
+  const best=preferred&&curve[preferred]+.025<curve[first]?preferred:first;
+  const a=curve[best-1],b=curve[best],c=curve[best+1];
+  return rate/(best+(a-c)/(2*(a-2*b+c)));
 }
 function go(target,index){
   stop();view=target;
@@ -226,9 +235,20 @@ function progress(){
   app.innerHTML='<h1>Tu progreso</h1><div class="grid"><section class="card"><h2>Últimas prácticas</h2>'+(history.length?'<ul class="log">'+history.slice(0,12).map(x=>'<li><strong>'+lessons[x.lesson].title+'</strong> · '+(x.mode==='afinacion'?'Completada':x.score+' %')+'<br><small>'+ (modes[x.mode]??'Práctica')+' · '+new Date(x.date).toLocaleDateString('es-ES')+'</small></li>').join('')+'</ul>':'<p class="muted">Aquí aparecerán tus resultados cuando completes una práctica.</p>')+'</section><aside class="card"><h2>Ruta inicial</h2><p class="metric">'+count+' / '+lessons.length+'</p><progress aria-label="Lecciones completadas" value="'+count+'" max="'+lessons.length+'"></progress><p class="muted spaced">'+(storageFailed?'El navegador no ha podido guardar el historial.':'El historial se guarda en este navegador.')+'</p></aside></div>';
 }
 function tuner(){
-  app.innerHTML='<h1>Afinador</h1><section class="card"><p>Elige una cuerda, activa el micrófono y tócala al aire.</p><div class="actions"><select id="string" aria-label="Cuerda">'+strings.map((s,i)=>'<option value="'+i+'">'+(6-i)+'.ª · '+s.name+'</option>').join('')+'</select>'+button('Escuchar referencia','reference')+button('Activar micrófono','enable',true)+'</div><div class="meter" aria-hidden="true"><i id="needle"></i></div><div class="tune" id="reading">Esperando una nota</div><p class="status" id="status" role="status"></p></section>';
+  app.innerHTML='<h1>Afinador</h1><section class="card"><p>Elige una cuerda, activa el micrófono y tócala al aire.</p><div class="actions"><select id="string" aria-label="Cuerda">'+strings.map((s,i)=>'<option value="'+i+'">'+(6-i)+'.ª · '+s.name+'</option>').join('')+'</select>'+button('Escuchar referencia','reference')+button('Activar micrófono','enable',true)+button('Volver a medir','retune').replace('<button ','<button hidden ')+'</div><div class="meter" aria-hidden="true"><i id="needle"></i></div><div class="tune" id="reading">Esperando una nota</div><p class="status" id="status" role="status"></p></section>';
   const string=document.querySelector('#string'),enable=document.querySelector('#enable');
-  let referenceRequest=0;
+  const reading=document.querySelector('#reading'),needle=document.querySelector('#needle');
+  const retune=document.querySelector('#retune');
+  let referenceRequest=0,ignoreUntil=0,locked=false,tracker={samples:[],stableSince:null};
+  const target=()=>hz(strings[string.value].midi);
+  function resetTuner(){
+    locked=false;tracker={samples:[],stableSince:null};
+    reading.classList.remove('locked');
+    needle.parentElement.classList.remove('locked');
+    needle.style.left='50%';reading.textContent='Esperando una nota';retune.hidden=true;
+    if(stream)status('Micrófono activo.');
+  }
+  string.onchange=retune.onclick=resetTuner;
   const reference=document.querySelector('#reference');
   reference.onclick=async()=>{
     const request=++referenceRequest,token=generation;
@@ -239,6 +259,8 @@ function tuner(){
       const sample=await guitarSample(note);
       if(token!==generation||request!==referenceRequest)return;
       stopAudio();
+      ignoreUntil=context.currentTime+2.35;
+      tracker={samples:[],stableSince:null};
       playGuitar(sample,context.currentTime,2.15);
     }catch(e){if(token===generation&&request===referenceRequest)status(e.message);}
     finally{if(token===generation&&request===referenceRequest)reference.textContent='Escuchar referencia';}
@@ -248,13 +270,44 @@ function tuner(){
     enable.textContent='Cancelar micrófono';
     const token=micGeneration+1;
     try{
-      if(await mic(frequency=>{
-        const cents=frequency?1200*Math.log2(frequency/hz(strings[string.value].midi)):0;
-        document.querySelector('#needle').style.left=(50+Math.max(-49,Math.min(49,cents/2)))+'%';
-        document.querySelector('#reading').textContent=!frequency?'Esperando una nota':Math.round(frequency)+' Hz · '+(Math.abs(cents)<=8?'Afinada':cents<0?'Sube la afinación':'Baja la afinación')+' ('+(cents>0?'+':'')+Math.round(cents)+' cents)';
-      })){enable.textContent='Desactivar micrófono';status('Micrófono activo.');}
+      resetTuner();
+      if(await mic((frequency,now)=>{
+        if(locked||now<ignoreUntil)return;
+        const result=trackTuning(tracker,frequency,target(),now);
+        if(!result){
+          reading.textContent='Esperando una nota';needle.style.left='50%';return;
+        }
+        const cents=result.cents;
+        if(result.confirmed){
+          locked=true;needle.style.left='50%';
+          reading.textContent='✓ '+strings[string.value].name+' · Cuerda afinada';
+          reading.classList.add('locked');needle.parentElement.classList.add('locked');
+          retune.hidden=false;
+          status('Cuerda afinada. Elige la siguiente o pulsa Volver a medir.');
+          clickBeat(660,now+.02);clickBeat(990,now+.10);
+          return;
+        }
+        needle.style.left=(50+Math.max(-49,Math.min(49,cents/2)))+'%';
+        reading.textContent=result.frequency.toFixed(1)+' Hz · '+(Math.abs(cents)<=8?'Mantén la nota':cents<0?'Sube la afinación':'Baja la afinación')+' ('+Math.round(cents)+' cents)';
+      },target)){enable.textContent='Desactivar micrófono';status('Micrófono activo.');}
     }catch(e){if(token===micGeneration){stopMic();enable.textContent='Activar micrófono';status(micError(e));}}
   };
+}
+function trackTuning(state,frequency,target,now){
+  if(frequency>0){
+    state.samples=state.samples.filter(sample=>now-sample.time<.31);
+    state.samples.push({time:now,cents:1200*Math.log2(frequency/target)});
+    if(state.samples.length>9)state.samples.shift();
+  }else if(!state.samples.length||now-state.samples.at(-1).time>.17){
+    state.samples=[];state.stableSince=null;return null;
+  }
+  const ordered=state.samples.map(sample=>sample.cents).sort((a,b)=>a-b);
+  const cents=ordered[Math.floor(ordered.length/2)];
+  const inTune=ordered.filter(value=>Math.abs(value)<=8).length;
+  const stable=frequency>0&&Math.abs(cents)<=8&&inTune>=5&&inTune>=ordered.length-1;
+  if(!stable)state.stableSince=null;
+  else state.stableSince??=now;
+  return {cents,frequency:target*2**(cents/1200),confirmed:stable&&now-state.stableSince>=.14};
 }
 function micError(e){if(e.name==='NotReadableError')return 'No se puede leer esta entrada. Comprueba si otra aplicación está usando el micrófono.';if(e.name==='OverconstrainedError')return 'La entrada seleccionada no está disponible. Pulsa Tocar con micrófono para volver a la entrada predeterminada.';return e.name==='NotAllowedError'?'Permite el micrófono en el navegador o usa el modo sin guitarra.':e.name==='NotFoundError'?'No hay un micrófono disponible.':e.message;}
 function status(message){const node=document.querySelector('#status');if(node)node.textContent=message;}
@@ -263,7 +316,7 @@ function tablature(notes){
 }
 function lesson(){
   const l=lessons[selected];
-  app.innerHTML='<div class="lesson"><div><p class="eyebrow">Lección '+(selected+1)+' de '+lessons.length+' · '+l.type+'</p><h1>'+l.title+'</h1>'+button('Volver a la ruta','back')+'</div><section class="card"><h2>Tutorial</h2><ol>'+l.steps.map(step=>'<li>'+step+'</li>').join('')+'</ol></section><section class="card">'+(!l.notes?'<h2>Comprueba tus cuerdas</h2><div class="actions">'+button('Abrir afinador','open-tuner')+button('Ya he afinado','complete',true)+'</div>':'<div class="practice-head"><div><h2>Práctica guiada</h2><p class="muted">Escucha el ejemplo y luego toca una nota por pulso.</p></div></div><div class="practice-settings"><label>Modo<select id="practice-mode"><option value="timed">A pulso</option><option value="guided">Nota a nota</option></select></label><label class="speed-label">Velocidad <output id="bpm">'+l.bpm+' BPM</output><input id="tempo" type="range" min="40" max="150" value="100" step="5" aria-label="Velocidad"></label><label>Fragmento<select id="segment"><option value="all">Completo</option>'+Array.from({length:Math.ceil(l.notes.length/4)},(_,i)=>'<option value="'+i+'">Pulsos '+(4*i+1)+'–'+Math.min(l.notes.length,4*i+4)+'</option>').join('')+'</select></label></div><div class="cue"><strong id="cue">Listo para empezar</strong><small id="beat-count"></small></div><div id="lane" class="lane" hidden aria-hidden="true"></div><div id="tabs"></div><small>0 = cuerda al aire · Los demás números indican el traste.</small><div class="actions practice-actions">'+button('Escuchar ejemplo','demo')+button('Tocar con micrófono','play',true)+button('Practicar en pantalla','virtual')+button('Parar','stop').replace('<button ','<button hidden ')+'</div><details class="practice-help"><summary>Cómo se puntúa</summary><p>Tras cuatro pulsos de entrada, toca cada nota cuando llegue a la línea verde. Acierta al menos el 75 % del ejercicio completo para avanzar. Si usas el micrófono, ponte auriculares para escuchar el metrónomo.</p></details><div class="mic-check" id="mic-check" hidden><label class="input-label">Entrada de audio<select id="mic-input"><option value="">Micrófono predeterminado</option></select></label><label><meter id="mic-level" min="0" max="1" value="0"></meter>Nivel del micrófono</label><p id="mic-note">Esperando señal.</p><p id="warmup" role="status"></p>'+button('Empezar','begin',true).replace('<button ','<button hidden ')+'</div><div id="guided-tools" class="actions spaced" hidden></div><div id="keys" class="spaced practice-keys"></div>')+'<p class="status exercise-status" id="status" role="status"></p><div id="result"></div></section></div>';
+  app.innerHTML='<div class="lesson"><div><p class="eyebrow">Lección '+(selected+1)+' de '+lessons.length+' · '+l.type+'</p><h1>'+l.title+'</h1>'+button('Volver a la ruta','back')+'</div><section class="card"><h2>Tutorial</h2><ol>'+l.steps.map(step=>'<li>'+step+'</li>').join('')+'</ol></section><section class="card">'+(!l.notes?'<h2>Comprueba tus cuerdas</h2><div class="actions">'+button('Abrir afinador','open-tuner')+button('Ya he afinado','complete',true)+'</div>':'<div class="practice-head"><div><h2>Práctica guiada</h2><p class="muted">Escucha el ejemplo y luego toca una nota por pulso.</p></div></div><div class="practice-settings"><label>Modo<select id="practice-mode"><option value="timed">A pulso</option><option value="guided">Nota a nota</option></select></label><label class="speed-label">Velocidad <output id="bpm">'+l.bpm+' BPM</output><input id="tempo" type="range" min="40" max="150" value="100" step="5" aria-label="Velocidad"></label><label>Fragmento<select id="segment"><option value="all">Completo</option>'+Array.from({length:Math.ceil(l.notes.length/4)},(_,i)=>'<option value="'+i+'">Pulsos '+(4*i+1)+'–'+Math.min(l.notes.length,4*i+4)+'</option>').join('')+'</select></label></div><div class="cue"><strong id="cue">Listo para empezar</strong><small id="beat-count"></small></div><div id="lane" class="lane" hidden aria-hidden="true"></div><span id="timing-live" class="timing-sr" role="status"></span><div id="tabs"></div><small>0 = cuerda al aire · Los demás números indican el traste.</small><div class="actions practice-actions">'+button('Escuchar ejemplo','demo')+button('Tocar con micrófono','play',true)+button('Practicar en pantalla','virtual')+button('Parar','stop').replace('<button ','<button hidden ')+'</div><details class="practice-help"><summary>Cómo se puntúa</summary><p>Tras cuatro pulsos de entrada, toca cada nota cuando llegue a la línea verde. Acierta al menos el 75 % del ejercicio completo para avanzar. Si usas el micrófono, ponte auriculares para escuchar el metrónomo.</p></details><div class="mic-check" id="mic-check" hidden><label class="input-label">Entrada de audio<select id="mic-input"><option value="">Micrófono predeterminado</option></select></label><label><meter id="mic-level" min="0" max="1" value="0"></meter>Nivel del micrófono</label><p id="mic-note">Esperando señal.</p><p id="warmup" role="status"></p>'+button('Empezar','begin',true).replace('<button ','<button hidden ')+'</div><div id="guided-tools" class="actions spaced" hidden></div><div id="keys" class="spaced practice-keys"></div>')+'<p class="status exercise-status" id="status" role="status"></p><div id="result"></div></section></div>';
   document.querySelector('#back').onclick=()=>go('ruta');
   if(!l.notes){
     document.querySelector('#open-tuner').onclick=()=>go('afinador');
@@ -277,6 +330,7 @@ function lesson(){
   const bpm=()=>Math.round(l.bpm*Number(tempo.value)/100);
   function reset(message=''){
     stop();practiceControls(false);showCue('Listo para empezar');document.querySelector('#tabs').innerHTML=tablature(notes());
+    document.querySelector('#timing-live').textContent='';
     document.querySelector('#lane').hidden=true;
     document.querySelector('#tabs').hidden=false;
     document.querySelector('#mic-check').hidden=true;
@@ -471,7 +525,7 @@ function drawLane(sequence,zero,beat){
   const lane=document.querySelector('#lane');
   lane.hidden=false;
   document.querySelector('#tabs').hidden=true;
-  lane.innerHTML='<div class="lane-strings">'+[1,2,3,4,5,6].map(i=>'<div class="lane-string">'+i+' · '+strings[6-i].name.split(' ')[0]+'</div>').join('')+'</div><div class="strike"></div>';
+  lane.innerHTML='<div class="lane-strings">'+[1,2,3,4,5,6].map(i=>'<div class="lane-string">'+i+' · '+strings[6-i].name.split(' ')[0]+'</div>').join('')+'</div><div class="strike"></div><div class="timing"></div>';
   const markers=sequence.flatMap((note,index)=>{
     if(!note)return [];
     const marker=document.createElement('span');
@@ -481,9 +535,16 @@ function drawLane(sequence,zero,beat){
     lane.append(marker);
     return [{marker,index}];
   });
+  const badge=lane.querySelector('.timing');
   function draw(){
     if(!session)return;
-    const progress=(context.currentTime-zero)/beat;
+    const now=context.currentTime;
+    const progress=(now-zero)/beat;
+    const feedback=session.feedback;
+    const visible=feedback&&now<feedback.until;
+    const label=visible?feedback.label:'';
+    if(badge.textContent!==label)badge.textContent=label;
+    badge.classList.toggle('perfect',visible&&label==='Perfecto');
     const width=lane.clientWidth;
     const spacing=(width*.77-18)/3;
     for(const {marker,index} of markers){
@@ -528,13 +589,25 @@ function detect(frequency,now,level){
     else judge(rounded,onset-.024);
   }
 }
+function timingLabel(delta,beat){
+  if(Math.abs(delta)<=Math.min(.115,beat*.19))return 'Perfecto';
+  return delta<0?'Muy pronto':'Muy tarde';
+}
 function judge(note,now){
   const s=session, position=(now-s.zero)/s.beat;
   const index=Math.round(position);
-  if(index<0||index>=s.sequence.length||Math.abs(position-index)>.36)return;
+  if(index<0||index>=s.sequence.length)return;
   const expected=s.sequence[index];
-  if(!expected){s.rests.add(index);return;}
+  const delta=now-(s.zero+index*s.beat);
+  const inWindow=Math.abs(delta)<=s.beat*.36;
+  if(!expected){if(inWindow)s.rests.add(index);return;}
   const correct=note===midi(expected);
+  if(s.mode&&correct&&s.results.get(index)!==true){
+    const label=timingLabel(delta,s.beat);
+    s.feedback={label,until:context.currentTime+Math.min(.95,s.beat*.85)};
+    document.querySelector('#timing-live').textContent=label+' · pulso '+(index+1);
+  }
+  if(!inWindow)return;
   if(s.results.get(index)!==true)s.results.set(index,correct);
   document.querySelectorAll('td[data-beat="'+index+'"]').forEach(td=>{
     td.classList.toggle('hit',s.results.get(index)===true);
@@ -544,6 +617,7 @@ function judge(note,now){
 function finish(full){
   const s=session;
   stop();practiceControls(false);
+  document.querySelector('#timing-live').textContent='';
   document.querySelector('#lane').hidden=true;
   document.querySelector('#tabs').hidden=false;
   document.querySelector('#mic-check').hidden=true;
