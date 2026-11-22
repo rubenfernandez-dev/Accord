@@ -148,11 +148,24 @@ async function mic(onPitch,targetFrequency){
     ...(inputId?{deviceId:{exact:inputId}}:{}),
     echoCancellation:{ideal:false},autoGainControl:{ideal:false},noiseSuppression:{ideal:false}
   }});
+  const audioReady=audio().then(ctx=>({ctx}),error=>({error}));
   microphoneRequest=request;
   const input=await request;
   if(token!==micGeneration){input.getTracks().forEach(t=>t.stop());return false;}
   stream=input;
-  const ctx=await audio();
+  const track=input.getAudioTracks()[0];
+  if(!track)throw Error('Chrome abrió la entrada sin una pista de audio.');
+  track.addEventListener('ended',()=>{
+    if(token!==micGeneration)return;
+    if(view==='afinador'){
+      stopMic();
+      document.querySelector('#enable').textContent='Activar micrófono';
+      document.querySelector('#mic-note').textContent='Entrada desconectada. Selecciona otra o pulsa Activar micrófono.';
+    }else document.querySelector('#stop')?.click();
+    status('El micrófono se desconectó. Vuelve a activarlo.');
+  },{once:true});
+  const {ctx,error}=await audioReady;
+  if(error)throw error;
   if(token!==micGeneration)return false;
   analyser=ctx.createAnalyser();
   analyser.fftSize=4096;
@@ -175,7 +188,7 @@ async function mic(onPitch,targetFrequency){
     onPitch(pitch(buffer.subarray(buffer.length-recent),ctx.sampleRate,target),ctx.currentTime,Math.sqrt(energy/1024));
   }
   loop();
-  return true;
+  return track;
 }
 function pitch(samples,rate,target){
   let energy=0;
@@ -234,8 +247,29 @@ function progress(){
   const modes={microfono:'Micrófono',pantalla:'Modo sin guitarra',afinacion:'Afinación'};
   app.innerHTML='<h1>Tu progreso</h1><div class="grid"><section class="card"><h2>Últimas prácticas</h2>'+(history.length?'<ul class="log">'+history.slice(0,12).map(x=>'<li><strong>'+lessons[x.lesson].title+'</strong> · '+(x.mode==='afinacion'?'Completada':x.score+' %')+'<br><small>'+ (modes[x.mode]??'Práctica')+' · '+new Date(x.date).toLocaleDateString('es-ES')+'</small></li>').join('')+'</ul>':'<p class="muted">Aquí aparecerán tus resultados cuando completes una práctica.</p>')+'</section><aside class="card"><h2>Ruta inicial</h2><p class="metric">'+count+' / '+lessons.length+'</p><progress aria-label="Lecciones completadas" value="'+count+'" max="'+lessons.length+'"></progress><p class="muted spaced">'+(storageFailed?'El navegador no ha podido guardar el historial.':'El historial se guarda en este navegador.')+'</p></aside></div>';
 }
+function microphonePanel(actions=''){
+  return '<div class="mic-check" id="mic-check" hidden><label class="input-label">Entrada de audio<select id="mic-input"><option value="">Micrófono predeterminado</option></select></label><p id="mic-device"></p><label><meter id="mic-level" min="0" max="1" value="0"></meter>Nivel del micrófono</label><p id="mic-note">Esperando señal.</p>'+actions+'</div>';
+}
+async function showMicrophone(track){
+  const panel=document.querySelector('#mic-check');
+  const select=panel.querySelector('#mic-input');
+  panel.hidden=false;
+  const label=track.label||'Micrófono predeterminado';
+  panel.querySelector('#mic-device').textContent='Entrada activa · '+label;
+  panel.querySelector('#mic-note').textContent='Toca la guitarra o habla cerca del micrófono para comprobar la entrada.';
+  panel.querySelector('#mic-level').value=0;
+  try{
+    const devices=await navigator.mediaDevices.enumerateDevices();
+    if(stream?.getAudioTracks()[0]!==track||!panel.isConnected)return;
+    select.replaceChildren(new Option('Micrófono predeterminado',''));
+    devices.filter(device=>device.kind==='audioinput'&&device.deviceId&&device.deviceId!=='default'&&device.deviceId!=='communications')
+      .forEach((device,i)=>select.add(new Option(device.label||'Entrada '+(i+1),device.deviceId)));
+    select.value=inputId;
+    if(select.selectedIndex<0)select.selectedIndex=0;
+  }catch{}
+}
 function tuner(){
-  app.innerHTML='<h1>Afinador</h1><section class="card"><p>Elige una cuerda, activa el micrófono y tócala al aire.</p><div class="actions"><select id="string" aria-label="Cuerda">'+strings.map((s,i)=>'<option value="'+i+'">'+(6-i)+'.ª · '+s.name+'</option>').join('')+'</select>'+button('Escuchar referencia','reference')+button('Activar micrófono','enable',true)+button('Volver a medir','retune').replace('<button ','<button hidden ')+'</div><div class="meter" aria-hidden="true"><i id="needle"></i></div><div class="tune" id="reading">Esperando una nota</div><p class="status" id="status" role="status"></p></section>';
+  app.innerHTML='<h1>Afinador</h1><section class="card"><p>Elige una cuerda, activa el micrófono y tócala al aire.</p><div class="actions"><select id="string" aria-label="Cuerda">'+strings.map((s,i)=>'<option value="'+i+'">'+(6-i)+'.ª · '+s.name+'</option>').join('')+'</select>'+button('Escuchar referencia','reference')+button('Activar micrófono','enable',true)+button('Volver a medir','retune').replace('<button ','<button hidden ')+'</div><div class="meter" aria-hidden="true"><i id="needle"></i></div><div class="tune" id="reading">Esperando una nota</div>'+microphonePanel()+'<p class="status" id="status" role="status"></p></section>';
   const string=document.querySelector('#string'),enable=document.querySelector('#enable');
   const reading=document.querySelector('#reading'),needle=document.querySelector('#needle');
   const retune=document.querySelector('#retune');
@@ -265,13 +299,25 @@ function tuner(){
     }catch(e){if(token===generation&&request===referenceRequest)status(e.message);}
     finally{if(token===generation&&request===referenceRequest)reference.textContent='Escuchar referencia';}
   };
-  enable.onclick=async()=>{
-    if(stream||microphoneRequest){stopMic();enable.textContent='Activar micrófono';status('Micrófono desactivado.');return;}
+  enable.onclick=()=>{
+    if(stream||microphoneRequest){
+      stopMic();enable.textContent='Activar micrófono';status('Micrófono desactivado.');
+      document.querySelector('#mic-check').hidden=true;
+      return;
+    }
+    activateTuner();
+  };
+  document.querySelector('#mic-input').onchange=e=>{
+    inputId=e.target.value;
+    activateTuner();
+  };
+  async function activateTuner(){
     enable.textContent='Cancelar micrófono';
     const token=micGeneration+1;
     try{
       resetTuner();
-      if(await mic((frequency,now)=>{
+      const track=await mic((frequency,now,level)=>{
+        updateMicReadout(frequency,level);
         if(locked||now<ignoreUntil)return;
         const result=trackTuning(tracker,frequency,target(),now);
         if(!result){
@@ -289,9 +335,18 @@ function tuner(){
         }
         needle.style.left=(50+Math.max(-49,Math.min(49,cents/2)))+'%';
         reading.textContent=result.frequency.toFixed(1)+' Hz · '+(Math.abs(cents)<=8?'Mantén la nota':cents<0?'Sube la afinación':'Baja la afinación')+' ('+Math.round(cents)+' cents)';
-      },target)){enable.textContent='Desactivar micrófono';status('Micrófono activo.');}
-    }catch(e){if(token===micGeneration){stopMic();enable.textContent='Activar micrófono';status(micError(e));}}
-  };
+      },target);
+      if(!track||token!==micGeneration)return;
+      enable.textContent='Desactivar micrófono';status('');
+      showMicrophone(track);
+    }catch(e){
+      if(token!==micGeneration)return;
+      stopMic();enable.textContent='Activar micrófono';
+      if(e.name==='OverconstrainedError')inputId='';
+      document.querySelector('#mic-check').hidden=true;
+      status(micError(e));
+    }
+  }
 }
 function trackTuning(state,frequency,target,now){
   if(frequency>0){
@@ -309,14 +364,14 @@ function trackTuning(state,frequency,target,now){
   else state.stableSince??=now;
   return {cents,frequency:target*2**(cents/1200),confirmed:stable&&now-state.stableSince>=.14};
 }
-function micError(e){if(e.name==='NotReadableError')return 'No se puede leer esta entrada. Comprueba si otra aplicación está usando el micrófono.';if(e.name==='OverconstrainedError')return 'La entrada seleccionada no está disponible. Pulsa Tocar con micrófono para volver a la entrada predeterminada.';return e.name==='NotAllowedError'?'Permite el micrófono en el navegador o usa el modo sin guitarra.':e.name==='NotFoundError'?'No hay un micrófono disponible.':e.message;}
+function micError(e){if(e.name==='NotReadableError')return 'No se puede leer esta entrada. Comprueba si otra aplicación está usando el micrófono.';if(e.name==='OverconstrainedError')return 'La entrada seleccionada no está disponible. Pulsa Tocar con micrófono para volver a la entrada predeterminada.';return e.name==='NotAllowedError'?'El navegador rechazó el acceso. En Chrome, abre los controles del sitio junto a la dirección y permite el micrófono. Luego vuelve a activarlo aquí.':e.name==='NotFoundError'?'No hay un micrófono disponible.':e.message;}
 function status(message){const node=document.querySelector('#status');if(node)node.textContent=message;}
 function tablature(notes){
   return '<div class="tabwrap"><table class="tab" aria-label="Tablatura del fragmento"><thead><tr><th scope="col">Cuerda</th>'+notes.map((_,i)=>'<th scope="col" data-beat="'+i+'">'+(i+1)+'</th>').join('')+'</tr></thead><tbody>'+[1,2,3,4,5,6].map(s=>'<tr><th scope="row">'+s+' · '+strings[6-s].name.replace(/ (grave|agudo)/,'')+'</th>'+notes.map((n,i)=>'<td class="'+(n?.[0]===s?'note':'')+'" data-beat="'+i+'">'+(n?.[0]===s?n[1]:'─')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
 }
 function lesson(){
   const l=lessons[selected];
-  app.innerHTML='<div class="lesson"><div><p class="eyebrow">Lección '+(selected+1)+' de '+lessons.length+' · '+l.type+'</p><h1>'+l.title+'</h1>'+button('Volver a la ruta','back')+'</div><section class="card"><h2>Tutorial</h2><ol>'+l.steps.map(step=>'<li>'+step+'</li>').join('')+'</ol></section><section class="card">'+(!l.notes?'<h2>Comprueba tus cuerdas</h2><div class="actions">'+button('Abrir afinador','open-tuner')+button('Ya he afinado','complete',true)+'</div>':'<div class="practice-head"><div><h2>Práctica guiada</h2><p class="muted">Escucha el ejemplo y luego toca una nota por pulso.</p></div></div><div class="practice-settings"><label>Modo<select id="practice-mode"><option value="timed">A pulso</option><option value="guided">Nota a nota</option></select></label><label class="speed-label">Velocidad <output id="bpm">'+l.bpm+' BPM</output><input id="tempo" type="range" min="40" max="150" value="100" step="5" aria-label="Velocidad"></label><label>Fragmento<select id="segment"><option value="all">Completo</option>'+Array.from({length:Math.ceil(l.notes.length/4)},(_,i)=>'<option value="'+i+'">Pulsos '+(4*i+1)+'–'+Math.min(l.notes.length,4*i+4)+'</option>').join('')+'</select></label></div><div class="cue"><strong id="cue">Listo para empezar</strong><small id="beat-count"></small></div><div id="lane" class="lane" hidden aria-hidden="true"></div><span id="timing-live" class="timing-sr" role="status"></span><div id="tabs"></div><small>0 = cuerda al aire · Los demás números indican el traste.</small><div class="actions practice-actions">'+button('Escuchar ejemplo','demo')+button('Tocar con micrófono','play',true)+button('Practicar en pantalla','virtual')+button('Parar','stop').replace('<button ','<button hidden ')+'</div><details class="practice-help"><summary>Cómo se puntúa</summary><p>Tras cuatro pulsos de entrada, toca cada nota cuando llegue a la línea verde. Acierta al menos el 75 % del ejercicio completo para avanzar. Si usas el micrófono, ponte auriculares para escuchar el metrónomo.</p></details><div class="mic-check" id="mic-check" hidden><label class="input-label">Entrada de audio<select id="mic-input"><option value="">Micrófono predeterminado</option></select></label><label><meter id="mic-level" min="0" max="1" value="0"></meter>Nivel del micrófono</label><p id="mic-note">Esperando señal.</p><p id="warmup" role="status"></p>'+button('Empezar','begin',true).replace('<button ','<button hidden ')+'</div><div id="guided-tools" class="actions spaced" hidden></div><div id="keys" class="spaced practice-keys"></div>')+'<p class="status exercise-status" id="status" role="status"></p><div id="result"></div></section></div>';
+  app.innerHTML='<div class="lesson"><div><p class="eyebrow">Lección '+(selected+1)+' de '+lessons.length+' · '+l.type+'</p><h1>'+l.title+'</h1>'+button('Volver a la ruta','back')+'</div><section class="card"><h2>Tutorial</h2><ol>'+l.steps.map(step=>'<li>'+step+'</li>').join('')+'</ol></section><section class="card">'+(!l.notes?'<h2>Comprueba tus cuerdas</h2><div class="actions">'+button('Abrir afinador','open-tuner')+button('Ya he afinado','complete',true)+'</div>':'<div class="practice-head"><div><h2>Práctica guiada</h2><p class="muted">Escucha el ejemplo y luego toca una nota por pulso.</p></div></div><div class="practice-settings"><label>Modo<select id="practice-mode"><option value="timed">A pulso</option><option value="guided">Nota a nota</option></select></label><label class="speed-label">Velocidad <output id="bpm">'+l.bpm+' BPM</output><input id="tempo" type="range" min="40" max="150" value="100" step="5" aria-label="Velocidad"></label><label>Fragmento<select id="segment"><option value="all">Completo</option>'+Array.from({length:Math.ceil(l.notes.length/4)},(_,i)=>'<option value="'+i+'">Pulsos '+(4*i+1)+'–'+Math.min(l.notes.length,4*i+4)+'</option>').join('')+'</select></label></div><div class="cue"><strong id="cue">Listo para empezar</strong><small id="beat-count"></small></div><div id="lane" class="lane" hidden aria-hidden="true"></div><span id="timing-live" class="timing-sr" role="status"></span><div id="tabs"></div><small>0 = cuerda al aire · Los demás números indican el traste.</small><div class="actions practice-actions">'+button('Escuchar ejemplo','demo')+button('Tocar con micrófono','play',true)+button('Practicar en pantalla','virtual')+button('Parar','stop').replace('<button ','<button hidden ')+'</div><details class="practice-help"><summary>Cómo se puntúa</summary><p>Tras cuatro pulsos de entrada, toca cada nota cuando llegue a la línea verde. Acierta al menos el 75 % del ejercicio completo para avanzar. Si usas el micrófono, ponte auriculares para escuchar el metrónomo.</p></details>'+microphonePanel('<p id="warmup" role="status"></p>'+button('Empezar','begin',true).replace('<button ','<button hidden '))+'<div id="guided-tools" class="actions spaced" hidden></div><div id="keys" class="spaced practice-keys"></div>')+'<p class="status exercise-status" id="status" role="status"></p><div id="result"></div></section></div>';
   document.querySelector('#back').onclick=()=>go('ruta');
   if(!l.notes){
     document.querySelector('#open-tuner').onclick=()=>go('afinador');
@@ -351,18 +406,6 @@ function lesson(){
     inputId=e.target.value;
     start('microfono');
   };
-  async function listInputs(token){
-    try{
-      const devices=await navigator.mediaDevices.enumerateDevices();
-      if(token!==generation)return;
-      const select=document.querySelector('#mic-input');
-      select.replaceChildren(new Option('Micrófono predeterminado',''));
-      devices.filter(device=>device.kind==='audioinput'&&device.deviceId&&device.deviceId!=='default'&&device.deviceId!=='communications')
-        .forEach((device,i)=>select.add(new Option(device.label||'Entrada '+(i+1),device.deviceId)));
-      select.value=inputId;
-      if(select.selectedIndex<0)select.selectedIndex=0;
-    }catch{}
-  }
   async function start(mode){
     reset();
     const token=generation,sequence=notes(),full=segment.value==='all';
@@ -373,14 +416,14 @@ function lesson(){
       practiceControls(true);
       if(mode==='microfono'){
         status('Solicitando acceso al micrófono…');
-        const ready=await mic((frequency,time,level)=>{
+        const track=await mic((frequency,time,level)=>{
           updateMicReadout(frequency,level);
           if(session)detect(frequency,time,level);
         });
-        if(!ready||token!==generation)return;
+        if(!track||token!==generation)return;
         status('');
         warmup(sequence,token);
-        listInputs(token);
+        showMicrophone(track);
         return;
       }
       const samples=new Map();
@@ -515,10 +558,19 @@ function lesson(){
   }
 }
 function updateMicReadout(frequency,level){
-  if(document.querySelector('#mic-check').hidden)return;
-  document.querySelector('#mic-level').value=Math.max(0,Math.min(1,(20*Math.log10(level)+65)/48));
+  const panel=document.querySelector('#mic-check');
+  if(panel.hidden)return;
+  const meter=panel.querySelector('#mic-level');
+  const measured=Math.max(0,Math.min(1,(20*Math.log10(level)+70)/53));
+  meter.value=Math.max(measured,meter.value*.87);
   const n=frequency?Math.round(69+12*Math.log2(frequency/440)):0;
-  document.querySelector('#mic-note').textContent=n?'Nota detectada · '+noteNames[n%12]+(Math.floor(n/12)-1)+' · '+Math.round(frequency)+' Hz':level>.0015?'Llega señal. Toca una sola cuerda y deja que suene.':'Sin señal clara. Comprueba la entrada del navegador y acerca la guitarra.';
+  const track=stream?.getAudioTracks()[0];
+  const message=track?.muted?'La entrada está temporalmente silenciada. Comprueba el dispositivo.':
+    n?'Nota detectada · '+noteNames[n%12]+(Math.floor(n/12)-1)+' · '+Math.round(frequency)+' Hz':
+    meter.value>.18?'Llega señal. Toca una sola cuerda y deja que suene.':
+    'Sin señal clara. Prueba a hablar cerca del micrófono o selecciona otra entrada.';
+  const readout=panel.querySelector('#mic-note');
+  if(readout.textContent!==message)readout.textContent=message;
   warmupPitch?.(frequency);
 }
 function drawLane(sequence,zero,beat){
